@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
-mongoose.connect('mongodb://localhost:27017/kashblogproj')
+// mongoose.connect('mongodb+srv://kashyap29700:hJMbbrThhO5fcH80@cluster0.6lpuf6e.mongodb.net/')
+mongoose.connect('mongodb+srv://kashyap29700:hJMbbrThhO5fcH80@cluster0.6lpuf6e.mongodb.net/')
 
 const userSchema = new mongoose.Schema({
     username: {

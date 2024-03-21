@@ -2,17 +2,35 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const app = express();
 const port = 9000;
+const multer = require('multer')
 
-app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: false }))
 app.set('view engine', 'ejs')
 
+var cookieParser = require('cookie-parser')
+app.use(cookieParser());
+
+app.use(bodyParser.json());
+app.use(express.static('public'));
+app.use(express.static('upload'))
 
 const mongoose = require('mongoose')
 const { userModel } = require('./schemas/userschema.js')
+const { blogModel } = require('./schemas/blogschema.js')
 
-var cookieParser = require('cookie-parser')
-app.use(cookieParser());
+
+const storage = multer.diskStorage(
+    {
+        destination: (req, file, cb) => {
+            return cb(null, './upload')
+        },
+        filename: (req, file, cb) => {
+            return cb(null, Date.now() + file.originalname)
+        }
+    }
+)
+
+var upload = multer({ storage: storage }).single('file');
 
 
 // authentication
@@ -20,8 +38,7 @@ const authLogin = (req, res, next) => {
     if (req.cookies.loginUsers) {
         next()
     } else {
-        console.log("failure user");
-        res.redirect('/login');
+        res.redirect('/login')
     }
 }
 
@@ -31,8 +48,16 @@ app.get('/', (req, res) => {
 })
 
 // Blog
-app.get('/blogs', authLogin, (req, res) => {
-    res.render('./Pages/blog')
+app.get('/blogs', authLogin, async(req, res) => {
+
+    try {
+        const blogs = await blogModel.find();
+        const user = req.cookies.loginUsers;
+        res.render('./Pages/blog', { blogs: blogs, username: user.username });
+    } catch (err) {
+        console.log(err);
+    }
+
 })
 
 // register
@@ -57,16 +82,26 @@ app.get('/login', (req, res) => {
 })
 app.post('/login', async (req, res) => {
     let loginUser = req.body;
-    const user = await userModel.findOne({ email: loginUser.email });
-    if (user) {
-        if (user.password === loginUser.password) {
-            res.cookie('loginUsers', user, { maxAge: 900000 })
-            console.log('success');
-            res.redirect('/blogs')
+    try {
+        const user = await userModel.findOne({ email: loginUser.email });
+        if (user) {
+            if (user.password === loginUser.password) {
+                res.cookie('loginUsers', user, { maxAge: 250000 })
+                console.log('success');
+                // res.redirect('/blogs')
+                res.redirect('/blogs?username=' + encodeURIComponent(user.username));
+
+            } else {
+                console.log('fail');
+                res.redirect('/login')
+            }
         } else {
-            console.log('fail');
-            res.redirect('/login')
+            console.log("User Not FOund");
+            res.redirect('/register')
         }
+    } catch (err) {
+        console.log(err);
+        res.redirect('/login');
     }
 })
 
@@ -78,6 +113,41 @@ app.get('/logout', (req, res) => {
     }
     res.redirect('/')
 })
+
+// create Blog
+app.get('/createblog', (req, res) => {
+    res.render('./Pages/creation')
+})
+// post data
+app.post('/upload', async (req, res) => {
+    upload(req, res, async () => {
+        if (req.file) {
+            const loggedInUser = req.cookies.loginUsers;
+            console.log(loggedInUser);
+            var details = {
+                title: req.body.title,
+                description: req.body.description,
+                // time: req.body.time,
+                blogimage: req.file.filename,
+                username: loggedInUser.username
+            }
+            console.log(details);
+
+            const blog = new blogModel(details)
+            console.log(blog);
+            try {
+                await blog.save();
+                res.redirect('/blogs');
+            } catch (error) {
+                console.error(error);
+            }
+        } else {
+
+        }
+    })
+})
+
+
 
 // server
 app.listen(port, () => {

@@ -41,6 +41,14 @@ const authLogin = (req, res, next) => {
         res.redirect('/login')
     }
 }
+const checkLoggedIn = (req, res, next) => {
+    if (req.cookies.loginUsers) {
+        res.redirect('/blogs');
+    } else {
+        next();
+    }
+};
+
 
 // home
 app.get('/', (req, res) => {
@@ -61,7 +69,7 @@ app.get('/blogs', authLogin, async(req, res) => {
 })
 
 // register
-app.get('/register', (req, res) => {
+app.get('/register', checkLoggedIn, (req, res) => {
     res.render('./Pages/register')
 })
 app.post('/register', async (req, res) => {
@@ -77,7 +85,7 @@ app.post('/register', async (req, res) => {
 })
 
 // login
-app.get('/login', (req, res) => {
+app.get('/login', checkLoggedIn, (req, res) => {
     res.render('./Pages/login')
 })
 app.post('/login', async (req, res) => {

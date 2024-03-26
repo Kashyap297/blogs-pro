@@ -17,6 +17,7 @@ app.use(express.static('upload'))
 const mongoose = require('mongoose')
 const { userModel } = require('./schemas/userschema.js')
 const { blogModel } = require('./schemas/blogschema.js')
+mongoose.connect('mongodb+srv://kashyap29700:hJMbbrThhO5fcH80@cluster0.6lpuf6e.mongodb.net/')
 
 
 const storage = multer.diskStorage(
@@ -45,22 +46,33 @@ const checkLoggedIn = (req, res, next) => {
     if (req.cookies.loginUsers) {
         res.redirect('/blogs');
     } else {
+        res.locals.username = null;
+        next();
+    }
+};
+const checkLogged = (req, res, next) => {
+    if (req.cookies.loginUsers) {
+        next();
+    } else {
+        res.locals.username = null;
         next();
     }
 };
 
 
 // home
-app.get('/', (req, res) => {
-    res.render('./Pages/index')
+app.get('/', checkLogged, (req, res) => {
+    const user = req.cookies.loginUsers;
+    res.render('./Pages/index', { username: user ? user.username : null })
 })
 
 // Blog
-app.get('/blogs', authLogin, async(req, res) => {
+app.get('/blogs', authLogin, async (req, res) => {
 
     try {
         const blogs = await blogModel.find();
         const user = req.cookies.loginUsers;
+        res.locals.username = user.username;
         res.render('./Pages/blog', { blogs: blogs, username: user.username });
     } catch (err) {
         console.log(err);
@@ -123,8 +135,9 @@ app.get('/logout', (req, res) => {
 })
 
 // create Blog
-app.get('/createblog', (req, res) => {
-    res.render('./Pages/creation')
+app.get('/createblog', authLogin, (req, res) => {
+    const user = req.cookies.loginUsers;
+    res.render('./Pages/creation', { username: user ? user.username : null })
 })
 // post data
 app.post('/upload', async (req, res) => {

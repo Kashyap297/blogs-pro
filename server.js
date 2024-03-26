@@ -1,24 +1,24 @@
 const express = require('express');
 const bodyParser = require('body-parser')
-const app = express();
-const port = 9000;
+const cookieParser = require('cookie-parser')
 const multer = require('multer')
-
-app.use(bodyParser.urlencoded({ extended: false }))
-app.set('view engine', 'ejs')
-
-var cookieParser = require('cookie-parser')
-app.use(cookieParser());
-
-app.use(bodyParser.json());
-app.use(express.static('public'));
-app.use(express.static('upload'))
-
 const mongoose = require('mongoose')
+
 const { userModel } = require('./schemas/userschema.js')
 const { blogModel } = require('./schemas/blogschema.js')
-mongoose.connect('mongodb+srv://kashyap29700:hJMbbrThhO5fcH80@cluster0.6lpuf6e.mongodb.net/')
 
+const app = express();
+const port = 9000;
+
+// middleware
+app.use(express.static('public'));
+app.use(express.static('upload'));
+app.use(bodyParser.urlencoded({ extended: false }))
+app.set('view engine', 'ejs')
+app.use(bodyParser.json());
+app.use(cookieParser());
+
+mongoose.connect('mongodb+srv://kashyap29700:hJMbbrThhO5fcH80@cluster0.6lpuf6e.mongodb.net/')
 
 const storage = multer.diskStorage(
     {
@@ -32,7 +32,6 @@ const storage = multer.diskStorage(
 )
 
 var upload = multer({ storage: storage }).single('file');
-
 
 // authentication
 const authLogin = (req, res, next) => {
@@ -167,8 +166,6 @@ app.post('/upload', async (req, res) => {
         }
     })
 })
-
-
 
 // server
 app.listen(port, () => {
